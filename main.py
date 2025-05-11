@@ -1,90 +1,165 @@
-import heapq
+import tkinter as tk
+import time
+from astar import a_star
 
-class Node:
-    def __init__(self, x, y, cost, heuristic, parent=None):
-        self.x = x
-        self.y = y
-        self.cost = cost
-        self.heuristic = heuristic
-        self.parent = parent
+CELL_COLORS = {
+    'S': 'green',
+    'E': 'red',
+    '1': 'black',
+    '0': 'white',
+    '2': 'orange',
+    '3': 'brown',
+    '*': 'blue'
+}
 
-    def __lt__(self, other):
-        return (self.cost + self.heuristic) < (other.cost + other.heuristic)
+class MazeGUI:
+    def __init__(self, root, maze):
+        self.root = root
+        self.maze = maze
+        self.rows = len(maze)
+        self.cols = len(maze[0])
+        self.cell_size = 50
+        self.canvas = tk.Canvas(root, width=self.cols * self.cell_size, height=self.rows * self.cell_size)
+        self.canvas.pack()
+        self.draw_maze()
+        tk.Button(root, text="Iniciar A*", command=self.run_astar).pack(pady=10)
 
-def manhattan(x1, y1, x2, y2):
-    return abs(x1 - x2) + abs(y1 - y2)
+    def draw_maze(self, path=None):
+        self.canvas.delete("all")
+        for i in range(self.rows):
+            for j in range(self.cols):
+                cell = self.maze[i][j]
+                color = CELL_COLORS.get(cell, 'white')
+                if path and (i, j) in path[1:-1]:
+                    color = CELL_COLORS['*']
+                x1 = j * self.cell_size
+                y1 = i * self.cell_size
+                x2 = x1 + self.cell_size
+                y2 = y1 + self.cell_size
+                self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="gray")
 
-def find_position(lab, target):
-    for i, row in enumerate(lab):
-        for j, value in enumerate(row):
-            if value == target:
-                return i, j
-    return None
+    def animate_path(self, path):
+        for (i, j) in path[1:-1]:
+            self.maze[i][j] = '*'
+            self.draw_maze(path)
+            self.root.update()
+            time.sleep(0.3)
 
-def neighbors(x, y):
-    directions = [(0,1), (1,0), (0,-1), (-1,0)]
-    return [(x+dx, y+dy) for dx, dy in directions]
+    def run_astar(self):
+        path = a_star(self.maze)
+        if path:
+            print("Menor caminho (em coordenadas):")
+            print(path)
+            self.animate_path(path)
+        else:
+            print("Sem solução: não há caminho entre S e E.")
 
-def a_star(lab):
-    start = find_position(lab, 'S')
-    end = find_position(lab, 'E')
-
-    if not start or not end:
-        return None, "Labirinto inválido: ponto inicial ou final não encontrado."
-
-    rows, cols = len(lab), len(lab[0])
-    open_list = []
-    visited = set()
-
-    start_node = Node(*start, 0, manhattan(*start, *end))
-    heapq.heappush(open_list, start_node)
-
-    while open_list:
-        current = heapq.heappop(open_list)
-        if (current.x, current.y) == end:
-            path = []
-            while current:
-                path.append((current.x, current.y))
-                current = current.parent
-            return path[::-1], None
-
-        visited.add((current.x, current.y))
-
-        for nx, ny in neighbors(current.x, current.y):
-            if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited:
-                if lab[nx][ny] != '1':
-                    neighbor_node = Node(nx, ny, current.cost + 1, manhattan(nx, ny, *end), current)
-                    heapq.heappush(open_list, neighbor_node)
-
-    return None, "Sem solução."
-
-def print_lab_with_path(lab, path):
-    lab_copy = [row[:] for row in lab]
-    for x, y in path[1:-1]:
-        lab_copy[x][y] = '*'
-    for row in lab_copy:
-        print(' '.join(row))
-
-def read_maze():
-    print("Digite o labirinto linha por linha (valores separados por espaço). Use:")
-    print("S = início, E = fim, 0 = livre, 1 = obstáculo.")
-    print("Digite uma linha vazia para finalizar.\n")
-
+def read_maze_from_terminal():
+    print("Digite o labirinto linha por linha. Valores válidos: S, E, 0, 1, 2, 3")
+    print("Digite uma linha vazia para finalizar.")
     maze = []
+    valid = {'S', 'E', '0', '1', '2', '3'}
     while True:
         line = input()
         if not line.strip():
             break
-        maze.append(line.strip().split())
+        row = line.strip().split()
+        if any(cell not in valid for cell in row):
+            print("Linha inválida. Use apenas: S, E, 0, 1, 2, 3.")
+            continue
+        maze.append(row)
     return maze
 
 if __name__ == "__main__":
-    maze = read_maze()
-    path, error = a_star(maze)
-    if error:
-        print(error)
+    maze = read_maze_from_terminal()
+    if not maze:
+        print("Nenhuma entrada fornecida.")
     else:
-        print("\nMenor caminho (em coordenadas):")
-        print(path)
-        print("\nLabirinto com o caminho destacado:")
-        print_lab_with_path(maze, path)
+        root = tk.Tk()
+        root.title("A* PathFinder - Interface Gráfica")
+        app = MazeGUI(root, maze)
+        root.mainloop()
+        import tkinter as tk
+        import time
+        from astar import a_star  # importa o algoritmo A*
+
+        CELL_COLORS = {
+            'S': 'green',
+            'E': 'red',
+            '1': 'black',
+            '0': 'white',
+            '2': 'orange',
+            '3': 'brown',
+            '*': 'blue'
+        }
+
+
+        class MazeGUI:
+            def __init__(self, root, maze):
+                self.root = root
+                self.maze = maze
+                self.rows = len(maze)
+                self.cols = len(maze[0])
+                self.cell_size = 50
+                self.canvas = tk.Canvas(root, width=self.cols * self.cell_size, height=self.rows * self.cell_size)
+                self.canvas.pack()
+                self.draw_maze()
+                tk.Button(root, text="Iniciar A*", command=self.run_astar).pack(pady=10)
+
+            def draw_maze(self, path=None):
+                self.canvas.delete("all")
+                for i in range(self.rows):
+                    for j in range(self.cols):
+                        cell = self.maze[i][j]
+                        color = CELL_COLORS.get(cell, 'white')
+                        if path and (i, j) in path[1:-1]:
+                            color = CELL_COLORS['*']
+                        x1 = j * self.cell_size
+                        y1 = i * self.cell_size
+                        x2 = x1 + self.cell_size
+                        y2 = y1 + self.cell_size
+                        self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="gray")
+
+            def animate_path(self, path):
+                for (i, j) in path[1:-1]:
+                    self.maze[i][j] = '*'
+                    self.draw_maze(path)
+                    self.root.update()
+                    time.sleep(0.3)
+
+            def run_astar(self):
+                path = a_star(self.maze)
+                if path:
+                    print("Menor caminho (em coordenadas):")
+                    print(path)
+                    self.animate_path(path)
+                else:
+                    print("Sem solução: não há caminho entre S e E.")
+
+
+        def read_maze_from_terminal():
+            print("Digite o labirinto linha por linha. Valores válidos: S, E, 0, 1, 2, 3")
+            print("Digite uma linha vazia para finalizar.")
+            maze = []
+            valid = {'S', 'E', '0', '1', '2', '3'}
+            while True:
+                line = input()
+                if not line.strip():
+                    break
+                row = line.strip().split()
+                if any(cell not in valid for cell in row):
+                    print("Linha inválida. Use apenas: S, E, 0, 1, 2, 3.")
+                    continue
+                maze.append(row)
+            return maze
+
+
+        if __name__ == "__main__":
+            maze = read_maze_from_terminal()
+            if not maze:
+                print("Nenhuma entrada fornecida.")
+            else:
+                root = tk.Tk()
+                root.title("A* PathFinder - Interface Gráfica")
+                app = MazeGUI(root, maze)
+                root.mainloop()
